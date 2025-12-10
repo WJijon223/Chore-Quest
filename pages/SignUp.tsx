@@ -1,31 +1,44 @@
 import React, { useState } from 'react';
 import { ParchmentCard, FantasyButton, FantasyInput } from '../components/FantasyUI';
 import { Feather, Key, Scroll } from 'lucide-react';
+import { auth } from '../services/firebase';
+import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 
 interface SignUpProps {
   onSignUp: () => void;
-  onGoogleSignUp: () => void;
   onNavigateToLogin: () => void;
 }
 
-const SignUp: React.FC<SignUpProps> = ({ onSignUp, onGoogleSignUp, onNavigateToLogin }) => {
+const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToLogin }) => {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
       alert("Passwords do not match, adventurer!");
       return;
     }
-    
-    // Simulate API call
-    setTimeout(() => {
-        alert(`A verification scroll has been dispatched to ${email}. Please unseal it to verify your account!`);
-        onSignUp();
-    }, 500);
+
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      onSignUp();
+    } catch (error) {
+      console.error("Error signing up with email and password", error);
+      alert("Could not create account. The email might be in use already.");
+    }
+  };
+
+  const handleGoogleSignUp = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      onSignUp();
+    } catch (error) {
+      console.error("Error signing up with Google", error);
+    }
   };
 
   return (
@@ -38,35 +51,35 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onGoogleSignUp, onNavigateToL
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <FantasyInput 
-            label="Email Address" 
-            type="email" 
+          <FantasyInput
+            label="Email Address"
+            type="email"
             placeholder="hero@example.com"
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
           />
-          <FantasyInput 
-            label="Chosen Hero Name" 
-            type="text" 
+          <FantasyInput
+            label="Chosen Hero Name"
+            type="text"
             placeholder="Sir Cleans-a-Lot"
             value={username}
             onChange={e => setUsername(e.target.value)}
             required
           />
           <div className="grid grid-cols-2 gap-4">
-            <FantasyInput 
-                label="Secret Word" 
-                type="password" 
+            <FantasyInput
+                label="Secret Word"
+                type="password"
                 placeholder="••••••"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
                 className="mb-0"
             />
-            <FantasyInput 
-                label="Confirm Secret" 
-                type="password" 
+            <FantasyInput
+                label="Confirm Secret"
+                type="password"
                 placeholder="••••••"
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
@@ -74,12 +87,12 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onGoogleSignUp, onNavigateToL
                 className="mb-0"
             />
           </div>
-          
+
           <div className="pt-6 flex flex-col gap-3">
             <FantasyButton type="submit" className="w-full justify-center text-lg" icon={Scroll}>
               Form Pact
             </FantasyButton>
-            
+
             <div className="relative py-2">
                 <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-parchment-800/30"></div>
@@ -89,12 +102,12 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onGoogleSignUp, onNavigateToL
                 </div>
             </div>
 
-            <FantasyButton 
-                type="button" 
-                variant="secondary" 
-                className="w-full justify-center" 
+            <FantasyButton
+                type="button"
+                variant="secondary"
+                className="w-full justify-center"
                 icon={Key}
-                onClick={onGoogleSignUp}
+                onClick={handleGoogleSignUp}
             >
               Sign Up with Google
             </FantasyButton>
