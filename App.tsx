@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { auth } from './services/firebase';
+import { auth, db } from './services/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
@@ -20,24 +21,26 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
-        // In a real app, you would fetch the user's profile from a database.
-        // For this version, we'll create a user object based on the Firebase user,
-        // falling back to mock data.
-        setAppUser({
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          setAppUser({ ...MOCK_USER, ...userDoc.data() } as User);
+        } else {
+          // Handle case where user exists in Auth but not Firestore
+          setAppUser({
             ...MOCK_USER,
-            username: user.displayName || 'New Hero', // Use display name from Google or a default
+            username: user.displayName || 'New Hero',
             email: user.email || '',
         });
+        }
       } else {
         setAppUser(null);
       }
       setLoading(false);
     });
 
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
 
@@ -48,7 +51,6 @@ const App: React.FC = () => {
   };
 
   if (loading) {
-    // You can replace this with a proper splash screen component
     return <div className="fixed inset-0 bg-parchment-100 flex items-center justify-center"><h1 className="text-4xl font-serif text-parchment-800">Loading...</h1></div>;
   }
 
@@ -63,9 +65,7 @@ const App: React.FC = () => {
     }
     return (
       <Login 
-        onLogin={() => {
-          // No action needed here, onAuthStateChanged handles it
-        }} 
+        onLogin={() => {}}
         onNavigateToSignUp={() => setAuthView('signup')} 
       />
     );
