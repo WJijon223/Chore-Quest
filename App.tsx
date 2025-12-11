@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth, db, getFriends } from './services/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, collection, query, where, writeBatch } from 'firebase/firestore';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
@@ -72,6 +72,36 @@ const App: React.FC = () => {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!appUser) return;
+
+    const q = query(
+      collection(db, "friendRequests"),
+      where("status", "==", "accepted"),
+      where("to", "==", appUser.id)
+    );
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const batch = writeBatch(db);
+      let shouldFetchFriends = false;
+
+      snapshot.docs.forEach((d) => {
+        const request = d.data();
+        const userRef = doc(db, "users", appUser.id);
+        batch.update(userRef, { friends: [...(appUser.friends || []), request.from] });
+        batch.delete(d.ref);
+        shouldFetchFriends = true;
+      });
+
+      if (shouldFetchFriends) {
+        await batch.commit();
+        fetchFriends(appUser.id);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [appUser]);
 
   const handleLogout = () => {
     auth.signOut().then(() => {

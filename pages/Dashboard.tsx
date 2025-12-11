@@ -15,7 +15,7 @@ import {
 interface DashboardProps {
   user: User;
   friends: Friend[];
-  refreshFriends: () => void;
+  refreshFriends: () => void; // This can be removed in a future step if no longer needed elsewhere
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ user, friends, refreshFriends }) => {
@@ -73,11 +73,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, friends, refreshFriends }) 
   };
 
   const handleAcceptRequest = async (request: FriendRequest) => {
-      if (!request.from || !user.id) return;
       try {
-        await acceptFriendRequest(request.id, request.from, user.id);
+        await acceptFriendRequest(request.id);
+        // Optimistically remove the request from the UI.
+        // The listener in App.tsx will handle the backend logic and friend list refresh.
         setFriendRequests(prev => prev.filter(r => r.id !== request.id));
-        refreshFriends();
       } catch (error) {
           console.error("Error accepting request:", error);
       }

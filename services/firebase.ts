@@ -1,3 +1,22 @@
+/*
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      // A user can only write to their own document.
+      allow write: if request.auth.uid == userId;
+    }
+    match /friendRequests/{requestId} {
+      allow create: if request.auth.uid == request.resource.data.from;
+      // The recipient of the request can update it (to change status).
+      allow update: if request.auth.uid == resource.data.to;
+      // Either user involved can read or delete the request.
+      allow read, delete: if request.auth.uid == resource.data.to || request.auth.uid == resource.data.from;
+    }
+  }
+}
+*/
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { 
@@ -88,15 +107,10 @@ export const getFriendRequests = async (userId: string): Promise<FriendRequest[]
   return populatedRequests.filter(Boolean) as FriendRequest[];
 };
 
-export const acceptFriendRequest = async (requestId: string, fromId: string, toId: string) => {
-    const fromUserRef = doc(db, 'users', fromId);
-    const toUserRef = doc(db, 'users', toId);
-
-    await updateDoc(fromUserRef, { friends: arrayUnion(toId) });
-    await updateDoc(toUserRef, { friends: arrayUnion(fromId) });
-
+// Updated to be more secure
+export const acceptFriendRequest = async (requestId: string) => {
     const requestRef = doc(db, 'friendRequests', requestId);
-    await deleteDoc(requestRef);
+    await updateDoc(requestRef, { status: 'accepted' });
 };
 
 export const declineFriendRequest = async (requestId: string) => {
