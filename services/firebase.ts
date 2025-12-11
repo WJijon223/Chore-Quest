@@ -20,7 +20,7 @@ service cloud.firestore {
 }
 */
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { 
   getFirestore, 
   collection,
@@ -36,7 +36,8 @@ import {
   serverTimestamp,
   Timestamp,
   orderBy,
-  limit
+  limit,
+  setDoc
 } from 'firebase/firestore';
 import { User, FriendRequest, Friend, DailyActivity } from '../types';
 
@@ -52,6 +53,35 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+export const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+  
+      // Check if user is new
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+  
+      if (!userDoc.exists()) {
+        // New user - create a document in 'users' collection
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          createdAt: serverTimestamp(),
+          xp: 0,
+          level: 1,
+          friends: [],
+        });
+      }
+    } catch (error) {
+      console.error("Error during Google sign-in:", error);
+      // Handle errors here, such as by showing a notification to the user
+    }
+  };
 
 export const searchUsersByUsername = async (username: string): Promise<User[]> => {
   const usersRef = collection(db, 'users');
@@ -180,3 +210,4 @@ export const getWeeklyXPActivity = async (userId: string): Promise<DailyActivity
 
 
 export { app, auth, db };
+''

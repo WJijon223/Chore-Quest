@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { ParchmentCard, FantasyButton, FantasyInput } from '../components/FantasyUI';
 import { Feather, Key } from 'lucide-react';
-import { auth } from '../services/firebase';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { auth, signInWithGoogle } from '../services/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 interface LoginProps {
   onLogin: () => void;
@@ -27,10 +27,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToSignUp }) => {
   };
 
   const handleGoogleSignIn = async () => {
-    const provider = new GoogleAuthProvider();
     setError(null);
     try {
-      await signInWithPopup(auth, provider);
+      await signInWithGoogle();
       onLogin();
     } catch (error) {
       console.error("Error signing in with Google", error);
