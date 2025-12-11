@@ -42,3 +42,12 @@ export interface Friend {
   avatar: string;
   isOnline: boolean;
 }
+
+export interface FriendRequest {
+  id: string;
+  from: string;
+  to: string;
+  status: 'pending' | 'accepted' | 'declined';
+  createdAt: any; // Firestore timestamp
+  fromUser?: User; // Populated by the frontend
+}
