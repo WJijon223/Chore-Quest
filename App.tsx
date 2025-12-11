@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth, db } from './services/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
 import BossPage from './pages/BossPage';
 import Layout from './components/Layout';
-import { MOCK_USER, MOCK_FRIENDS, MOCK_BOSSES } from './constants';
+import { MOCK_FRIENDS, MOCK_BOSSES } from './constants';
 import { User } from './types';
 
 type Page = 'dashboard' | 'bosses';
 type AuthView = 'login' | 'signup';
+
+const DEFAULT_USER_DATA = {
+    avatar: 'https://i.imgur.com/8a5tC2s.png',
+    level: 1,
+    currentXP: 0,
+    xpToNextLevel: 100,
+    bossesDefeated: 0,
+};
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
@@ -24,16 +32,29 @@ const App: React.FC = () => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          setAppUser({ ...MOCK_USER, ...userDoc.data() } as User);
-        } else {
-          // Handle case where user exists in Auth but not Firestore
-          setAppUser({
-            ...MOCK_USER,
-            username: user.displayName || 'New Hero',
-            email: user.email || '',
-        });
+        try {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+              setAppUser({ id: user.uid, ...userDoc.data() } as User);
+            } else {
+              // Create a new user document if it doesn't exist
+              const newUser: User = {
+                id: user.uid,
+                username: user.displayName || 'New Hero',
+                ...DEFAULT_USER_DATA,
+              };
+              await setDoc(userDocRef, newUser);
+              setAppUser(newUser);
+            }
+        } catch (error) {
+            console.error("Error fetching or creating user document:", error);
+            // Fallback for display, but without sensitive data
+            setAppUser({
+                id: user.uid,
+                username: 'Error Hero',
+                ...DEFAULT_USER_DATA,
+            });
         }
       } else {
         setAppUser(null);
