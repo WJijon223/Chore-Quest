@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth, db, getFriends } from './services/firebase';
 import { 
-    doc, getDoc, setDoc, onSnapshot, collection, query, 
+    doc, setDoc, onSnapshot, collection, query, 
     where, writeBatch, arrayUnion 
 } from 'firebase/firestore';
 import Login from './pages/Login';
@@ -43,38 +43,51 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let userSnapshotUnsubscribe: (() => void) | null = null;
+
+    const authUnsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
+      
+      if (userSnapshotUnsubscribe) {
+        userSnapshotUnsubscribe();
+      }
+
       if (user) {
-        try {
-            const userDocRef = doc(db, 'users', user.uid);
-            const userDoc = await getDoc(userDocRef);
-            
-            const existingData = userDoc.data() || {};
-            const completeUserData = { ...DEFAULT_USER_DATA, ...existingData };
+        setLoading(true);
+        const userDocRef = doc(db, 'users', user.uid);
 
-            await setDoc(userDocRef, completeUserData, { merge: true });
-            setAppUser({ id: user.uid, ...completeUserData } as User);
-
-            fetchFriends(user.uid);
-
-        } catch (error) {
-            console.error("Error fetching or creating user document:", error);
-            setAppUser({
-                id: user.uid,
-                username: 'Error Hero',
-                ...DEFAULT_USER_DATA,
-            });
-        }
+        userSnapshotUnsubscribe = onSnapshot(userDocRef, async (userDoc) => {
+          if (userDoc.exists()) {
+            setAppUser({ id: user.uid, ...userDoc.data() } as User);
+          } else {
+            const newUserData = { 
+                ...DEFAULT_USER_DATA, 
+                username: user.displayName || 'New Hero' 
+            };
+            await setDoc(userDocRef, newUserData, { merge: true });
+            setAppUser({ id: user.uid, ...newUserData } as User);
+          }
+          fetchFriends(user.uid);
+          setLoading(false);
+        }, (error) => {
+          console.error("Error listening to user document:", error);
+          setLoading(false);
+        });
       } else {
         setAppUser(null);
         setFriends([]);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      authUnsubscribe();
+      if (userSnapshotUnsubscribe) {
+        userSnapshotUnsubscribe();
+      }
+    };
   }, []);
+
 
   useEffect(() => {
     if (!appUser?.id) return;
@@ -100,7 +113,6 @@ const App: React.FC = () => {
       });
 
       await batch.commit();
-      fetchFriends(userId);
     });
 
     // Listener for when I ACCEPT another user's request.
@@ -123,7 +135,6 @@ const App: React.FC = () => {
         });
 
         await batch.commit();
-        fetchFriends(userId);
     });
 
 
@@ -131,7 +142,7 @@ const App: React.FC = () => {
       unsubscribeSent();
       unsubscribeReceived();
     };
-  }, [appUser]);
+  }, [appUser?.id]);
 
   const handleLogout = () => {
     auth.signOut().then(() => {
