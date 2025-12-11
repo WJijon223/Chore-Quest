@@ -14,7 +14,7 @@ import {
   arrayUnion,
   serverTimestamp
 } from 'firebase/firestore';
-import { User, FriendRequest } from '../types';
+import { User, FriendRequest, Friend } from '../types';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -102,6 +102,35 @@ export const acceptFriendRequest = async (requestId: string, fromId: string, toI
 export const declineFriendRequest = async (requestId: string) => {
     const requestRef = doc(db, 'friendRequests', requestId);
     await deleteDoc(requestRef);
+};
+
+export const getFriends = async (userId: string): Promise<Friend[]> => {
+  const userRef = doc(db, 'users', userId);
+  const userDoc = await getDoc(userRef);
+  if (!userDoc.exists()) {
+    console.error("User not found");
+    return [];
+  }
+
+  const userData = userDoc.data() as User;
+  const friendIds = userData.friends || [];
+
+  if (friendIds.length === 0) {
+    return [];
+  }
+
+  const friends: Friend[] = await Promise.all(
+    friendIds.map(async (friendId: string) => {
+      const friendDocRef = doc(db, 'users', friendId);
+      const friendDoc = await getDoc(friendDocRef);
+      if (friendDoc.exists()) {
+        return { id: friendDoc.id, ...friendDoc.data() } as Friend;
+      }
+      return null;
+    })
+  );
+
+  return friends.filter((friend): friend is Friend => friend !== null);
 };
 
 export { app, auth, db };

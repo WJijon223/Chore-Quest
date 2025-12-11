@@ -33,6 +33,7 @@ export interface User {
   currentXP: number;
   xpToNextLevel: number;
   bossesDefeated: number;
+  friends: string[];
 }
 
 export interface Friend {

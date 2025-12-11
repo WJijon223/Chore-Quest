@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { auth, db } from './services/firebase';
+import { auth, db, getFriends } from './services/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
 import BossPage from './pages/BossPage';
 import Layout from './components/Layout';
-import { MOCK_FRIENDS, MOCK_BOSSES } from './constants';
-import { User } from './types';
+import { MOCK_BOSSES } from './constants';
+import { User, Friend } from './types';
 
 type Page = 'dashboard' | 'bosses';
 type AuthView = 'login' | 'signup';
@@ -19,11 +19,13 @@ const DEFAULT_USER_DATA = {
     currentXP: 0,
     xpToNextLevel: 100,
     bossesDefeated: 0,
+    friends: [],
 };
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [appUser, setAppUser] = useState<User | null>(null);
+  const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const [authView, setAuthView] = useState<AuthView>('login');
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -38,7 +40,6 @@ const App: React.FC = () => {
             if (userDoc.exists()) {
               setAppUser({ id: user.uid, ...userDoc.data() } as User);
             } else {
-              // Create a new user document if it doesn't exist
               const newUser: User = {
                 id: user.uid,
                 username: user.displayName || 'New Hero',
@@ -47,9 +48,12 @@ const App: React.FC = () => {
               await setDoc(userDocRef, newUser);
               setAppUser(newUser);
             }
+
+            const friendsData = await getFriends(user.uid);
+            setFriends(friendsData);
+
         } catch (error) {
             console.error("Error fetching or creating user document:", error);
-            // Fallback for display, but without sensitive data
             setAppUser({
                 id: user.uid,
                 username: 'Error Hero',
@@ -58,6 +62,7 @@ const App: React.FC = () => {
         }
       } else {
         setAppUser(null);
+        setFriends([]);
       }
       setLoading(false);
     });
@@ -99,7 +104,7 @@ const App: React.FC = () => {
       onLogout={handleLogout}
     >
       {currentPage === 'dashboard' && (
-        <Dashboard user={appUser} friends={MOCK_FRIENDS} />
+        <Dashboard user={appUser} friends={friends} />
       )}
       {currentPage === 'bosses' && (
         <BossPage bosses={MOCK_BOSSES} />
