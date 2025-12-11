@@ -37,17 +37,12 @@ const App: React.FC = () => {
         try {
             const userDocRef = doc(db, 'users', user.uid);
             const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists()) {
-              setAppUser({ id: user.uid, ...userDoc.data() } as User);
-            } else {
-              const newUser: User = {
-                id: user.uid,
-                username: user.displayName || 'New Hero',
-                ...DEFAULT_USER_DATA,
-              };
-              await setDoc(userDocRef, newUser);
-              setAppUser(newUser);
-            }
+            
+            const existingData = userDoc.data() || {};
+            const completeUserData = { ...DEFAULT_USER_DATA, ...existingData };
+
+            await setDoc(userDocRef, completeUserData, { merge: true });
+            setAppUser({ id: user.uid, ...completeUserData } as User);
 
             const friendsData = await getFriends(user.uid);
             setFriends(friendsData);
