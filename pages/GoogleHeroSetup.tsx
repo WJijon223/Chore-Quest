@@ -1,49 +1,57 @@
 import React, { useState } from 'react';
 import { ParchmentCard, FantasyButton, FantasyInput } from '../components/FantasyUI';
-import { Sword, Scroll } from 'lucide-react';
+import { updateUsernameAndFinalize } from '../services/firebase';
+import { User } from '../types';
 
 interface GoogleHeroSetupProps {
-  onComplete: (heroName: string) => void;
+  user: User;
 }
 
-const GoogleHeroSetup: React.FC<GoogleHeroSetupProps> = ({ onComplete }) => {
-  const [heroName, setHeroName] = useState('');
+const GoogleHeroSetup: React.FC<GoogleHeroSetupProps> = ({ user }) => {
+  const [username, setUsername] = useState(user.username);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (heroName.trim()) {
-      onComplete(heroName);
+  const handleSetup = async () => {
+    if (!username.trim()) {
+      setError("Please choose a name for your hero.");
+      return;
+    }
+    try {
+      await updateUsernameAndFinalize(user.id, username);
+    } catch (error) {
+      console.error("Error updating username:", error);
+      setError("Could not set hero name. Please try again.");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <ParchmentCard className="w-full max-w-md shadow-2xl animate-fade-in-up text-center">
-        <div className="mb-6">
-          <div className="w-16 h-16 bg-parchment-300 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-parchment-800">
-             <Scroll className="text-parchment-900" size={32} />
-          </div>
-          <h1 className="text-3xl font-serif font-black text-parchment-900 mb-2">Who goes there?</h1>
-          <div className="h-1 w-24 bg-parchment-800 mx-auto mb-4"></div>
-          <p className="font-serif italic text-parchment-800">
-            The spirits have granted you entry, but every hero needs a name in these lands.
-          </p>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-parchment-100">
+      <ParchmentCard className="w-full max-w-lg shadow-2xl">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-serif font-black text-parchment-900 mb-2 tracking-wider">Welcome, Hero!</h1>
+          <p className="font-serif italic text-parchment-800">Your legend is about to begin. Choose your name.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <FantasyInput 
-            label="Declare Your Hero Name" 
-            placeholder="e.g. Sir Clean-a-Lot"
-            value={heroName}
-            onChange={(e) => setHeroName(e.target.value)}
-            required
-            autoFocus
-          />
-          
-          <FantasyButton type="submit" className="w-full justify-center text-lg" icon={Sword}>
-            Begin Adventure
-          </FantasyButton>
-        </form>
+        {error && (
+          <div className="bg-danger/20 border border-danger text-danger-dark px-4 py-3 rounded-lg relative mb-6 text-center">
+            <strong className="font-bold">Halt!</strong>
+            <span className="block sm:inline"> {error}</span>
+          </div>
+        )}
+
+        <div className="flex items-center gap-4 mb-6">
+            <img src={user.avatar} alt="Avatar" className="w-24 h-24 rounded-full border-4 border-parchment-800" />
+            <FantasyInput
+                label="Choose Your Hero Name"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="flex-grow"
+            />
+        </div>
+
+        <FantasyButton onClick={handleSetup} className="w-full justify-center text-lg">
+          Begin My Quest
+        </FantasyButton>
       </ParchmentCard>
     </div>
   );

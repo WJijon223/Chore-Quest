@@ -2,30 +2,34 @@ import { doc, updateDoc, collection, increment, runTransaction, Timestamp, getDo
 import { db } from './firebase';
 import { User } from '../types';
 
+const BASE_XP_TO_NEXT_LEVEL = 100;
 const LEVEL_SCALING_FACTOR = 1.5;
 
-const getUTCDateString = () => {
-  const date = new Date();
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+export const getXPForLevel = (level: number): number => {
+  let xp = BASE_XP_TO_NEXT_LEVEL;
+  for (let i = 1; i < level; i++) {
+    xp = Math.floor(xp * LEVEL_SCALING_FACTOR);
+  }
+  return xp;
 };
 
-export const calculateNewXpToNextLevel = (currentXpToNextLevel: number): number => {
-  return Math.floor(currentXpToNextLevel * LEVEL_SCALING_FACTOR);
+const getLocalDateString = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 export const updateUserXP = async (user: User, xpGained: number): Promise<void> => {
   if (xpGained <= 0) return;
 
   const userRef = doc(db, 'users', user.id);
-  const today = getUTCDateString();
+  const today = getLocalDateString();
   const activityRef = doc(db, 'users', user.id, 'activity', today);
 
   try {
     await runTransaction(db, async (transaction) => {
-      // Read operations first
       const userDoc = await transaction.get(userRef);
       const activityDoc = await transaction.get(activityRef);
 
@@ -40,19 +44,16 @@ export const updateUserXP = async (user: User, xpGained: number): Promise<void> 
       let newXpToNextLevel = userData.xpToNextLevel;
       const updates: { [key: string]: any } = {};
 
-      if (newCurrentXP >= newXpToNextLevel) {
+      while (newCurrentXP >= newXpToNextLevel) {
         newLevel += 1;
         newCurrentXP -= newXpToNextLevel;
-        newXpToNextLevel = calculateNewXpToNextLevel(newXpToNextLevel);
-
-        updates.level = newLevel;
-        updates.currentXP = newCurrentXP;
-        updates.xpToNextLevel = newXpToNextLevel;
-      } else {
-        updates.currentXP = newCurrentXP;
+        newXpToNextLevel = getXPForLevel(newLevel);
       }
+
+      updates.level = newLevel;
+      updates.currentXP = newCurrentXP;
+      updates.xpToNextLevel = newXpToNextLevel;
       
-      // Write operations last
       transaction.update(userRef, updates);
 
       if (activityDoc.exists()) {
@@ -63,6 +64,5 @@ export const updateUserXP = async (user: User, xpGained: number): Promise<void> 
     });
   } catch (error) {
     console.error("XP update transaction failed: ", error);
-    // Optionally re-throw or handle the error as needed
   }
 };

@@ -21,23 +21,27 @@ interface DashboardProps {
 }
 
 const formatActivityData = (activity: DailyActivity[]) => {
-  const dataMap = new Map<string, number>();
-  for (let i = 0; i < 7; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
-    dataMap.set(dayName, 0);
-  }
+  const activityByDate = new Map<string, number>();
 
   activity.forEach(a => {
     const date = (a.date as unknown as Timestamp).toDate();
-    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-    if (dataMap.has(dayName)) {
-      dataMap.set(dayName, dataMap.get(dayName)! + a.xp);
-    }
+    const dateString = `${date.getMonth() + 1}/${date.getDate()}`;
+    activityByDate.set(dateString, (activityByDate.get(dateString) || 0) + a.xp);
   });
 
-  return Array.from(dataMap.entries()).map(([name, xp]) => ({ name, xp })).reverse();
+  const last7DaysData = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateString = `${d.getMonth() + 1}/${d.getDate()}`;
+    
+    last7DaysData.push({
+      name: dateString,
+      xp: activityByDate.get(dateString) || 0,
+    });
+  }
+
+  return last7DaysData;
 };
 
 const Dashboard: React.FC<DashboardProps> = ({ user, friends, refreshFriends }) => {

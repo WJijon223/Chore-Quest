@@ -20,7 +20,7 @@ service cloud.firestore {
 }
 */
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, User as FirebaseAuthUser } from 'firebase/auth';
 import { 
   getFirestore, 
   collection,
@@ -36,9 +36,11 @@ import {
   serverTimestamp,
   Timestamp,
   orderBy,
-  limit
+  limit,
+  setDoc
 } from 'firebase/firestore';
 import { User, FriendRequest, Friend, DailyActivity } from '../types';
+import { getXPForLevel } from './xpService';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -52,6 +54,43 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+export const signInWithGoogle = async (): Promise<void> => {
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const firebaseUser = result.user;
+  
+      const userDocRef = doc(db, "users", firebaseUser.uid);
+      const userDoc = await getDoc(userDocRef);
+  
+      if (!userDoc.exists()) {
+        const newUser: User = {
+          id: firebaseUser.uid,
+          username: firebaseUser.displayName || `Hero${Math.floor(Math.random() * 1000)}`,
+          email: firebaseUser.email!,
+          avatar: firebaseUser.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${firebaseUser.uid}`,
+          level: 1,
+          currentXP: 0,
+          xpToNextLevel: getXPForLevel(1),
+          bossesDefeated: 0,
+          friends: [],
+          needsUsernameSetup: true,
+        };
+        await setDoc(userDocRef, newUser);
+      }
+    } catch (error) {
+      console.error("Error during Google sign-in:", error);
+    }
+  };
+
+export const updateUsernameAndFinalize = async (userId: string, username: string): Promise<void> => {
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, { 
+        username, 
+        needsUsernameSetup: false 
+    });
+};
 
 export const searchUsersByUsername = async (username: string): Promise<User[]> => {
   const usersRef = collection(db, 'users');
@@ -112,7 +151,6 @@ export const getFriendRequests = async (userId: string): Promise<FriendRequest[]
   return populatedRequests.filter(Boolean) as FriendRequest[];
 };
 
-// Updated to be more secure
 export const acceptFriendRequest = async (requestId: string) => {
     const requestRef = doc(db, 'friendRequests', requestId);
     await updateDoc(requestRef, { status: 'accepted' });

@@ -12,18 +12,11 @@ import BossPage from './pages/BossPage';
 import Layout from './components/Layout';
 import { MOCK_BOSSES } from './constants';
 import { User, Friend } from './types';
+import { getXPForLevel } from './services/xpService';
+import GoogleHeroSetup from './pages/GoogleHeroSetup';
 
 type Page = 'dashboard' | 'bosses';
 type AuthView = 'login' | 'signup';
-
-const DEFAULT_USER_DATA = {
-    avatar: 'https://placehold.co/128x128/EED8B7/6B4F3A/png?text=Hero',
-    level: 1,
-    currentXP: 0,
-    xpToNextLevel: 100,
-    bossesDefeated: 0,
-    friends: [],
-};
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
@@ -58,15 +51,9 @@ const App: React.FC = () => {
 
         userSnapshotUnsubscribe = onSnapshot(userDocRef, async (userDoc) => {
           if (userDoc.exists()) {
-            setAppUser({ id: user.uid, ...userDoc.data() } as User);
-          } else {
-            const newUserData = { 
-                ...DEFAULT_USER_DATA, 
-                username: user.displayName || 'New Hero' 
-            };
-            await setDoc(userDocRef, newUserData, { merge: true });
-            setAppUser({ id: user.uid, ...newUserData } as User);
-          }
+            const userData = userDoc.data() as User;
+            setAppUser({ id: user.uid, ...userData });
+          } 
           fetchFriends(user.uid);
           setLoading(false);
         }, (error) => {
@@ -113,6 +100,7 @@ const App: React.FC = () => {
       });
 
       await batch.commit();
+      fetchFriends(userId);
     });
 
     // Listener for when I ACCEPT another user's request.
@@ -135,6 +123,7 @@ const App: React.FC = () => {
         });
 
         await batch.commit();
+        fetchFriends(userId);
     });
 
 
@@ -142,7 +131,26 @@ const App: React.FC = () => {
       unsubscribeSent();
       unsubscribeReceived();
     };
-  }, [appUser?.id]);
+  }, [appUser]);
+
+  const handleSignUp = async (user: FirebaseUser, username?: string) => {
+    const userDocRef = doc(db, 'users', user.uid);
+    const newUserData: User = {
+      id: user.uid,
+      username: username || user.displayName || 'New Hero',
+      email: user.email || '',
+      avatar: user.photoURL || 'https://placehold.co/128x128/EED8B7/6B4F3A/png?text=Hero',
+      level: 1,
+      currentXP: 0,
+      xpToNextLevel: getXPForLevel(1),
+      bossesDefeated: 0,
+      friends: [],
+    };
+
+    await setDoc(userDocRef, newUserData, { merge: true });
+    setAppUser(newUserData);
+    setAuthView('login');
+  };
 
   const handleLogout = () => {
     auth.signOut().then(() => {
@@ -158,17 +166,20 @@ const App: React.FC = () => {
     if (authView === 'signup') {
       return (
         <SignUp 
-          onSignUp={() => setAuthView('login')} 
-          onNavigateToLogin={() => setAuthView('login')} 
+          onSignUp={handleSignUp} 
+          onNavigateToLogin={() => setAuthVw('login')} 
         />
       );
     }
     return (
       <Login 
-        onLogin={() => {}}
         onNavigateToSignUp={() => setAuthView('signup')} 
       />
     );
+  }
+
+  if (appUser.needsUsernameSetup) {
+    return <GoogleHeroSetup user={appUser} />;
   }
 
   return (

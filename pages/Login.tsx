@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { ParchmentCard, FantasyButton, FantasyInput } from '../components/FantasyUI';
 import { Feather, Key } from 'lucide-react';
-import { auth } from '../services/firebase';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { auth, signInWithGoogle } from '../services/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 interface LoginProps {
-  onLogin: () => void;
   onNavigateToSignUp: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToSignUp }) => {
+const Login: React.FC<LoginProps> = ({ onNavigateToSignUp }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +18,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToSignUp }) => {
     setError(null);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      onLogin();
     } catch (error) {
       console.error("Error signing in with email and password", error);
       setError("Invalid email or password. Please try again.");
@@ -27,11 +25,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToSignUp }) => {
   };
 
   const handleGoogleSignIn = async () => {
-    const provider = new GoogleAuthProvider();
     setError(null);
     try {
-      await signInWithPopup(auth, provider);
-      onLogin();
+      await signInWithGoogle();
     } catch (error) {
       console.error("Error signing in with Google", error);
       setError("There was a problem signing in with Google. Please try again.");
