@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth, db, getFriends } from './services/firebase';
-import { doc, getDoc, setDoc, onSnapshot, collection, query, where, writeBatch } from 'firebase/firestore';
+import { 
+    doc, getDoc, setDoc, onSnapshot, collection, query, 
+    where, writeBatch, arrayUnion 
+} from 'firebase/firestore';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
@@ -74,33 +77,60 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!appUser) return;
+    if (!appUser?.id) return;
+    const userId = appUser.id;
 
-    const q = query(
+    // Listener for when my SENT request was accepted by another user.
+    // I am the 'from' user and am responsible for cleaning up the request.
+    const sentRequestsQuery = query(
       collection(db, "friendRequests"),
-      where("status", "==", "accepted"),
-      where("to", "==", appUser.id)
+      where("from", "==", userId),
+      where("status", "==", "accepted")
     );
+    const unsubscribeSent = onSnapshot(sentRequestsQuery, async (snapshot) => {
+      if (snapshot.empty) return;
 
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
       const batch = writeBatch(db);
-      let shouldFetchFriends = false;
-
-      snapshot.docs.forEach((d) => {
+      const userDocRef = doc(db, "users", userId);
+      
+      snapshot.docs.forEach(d => {
         const request = d.data();
-        const userRef = doc(db, "users", appUser.id);
-        batch.update(userRef, { friends: [...(appUser.friends || []), request.from] });
+        batch.update(userDocRef, { friends: arrayUnion(request.to) });
         batch.delete(d.ref);
-        shouldFetchFriends = true;
       });
 
-      if (shouldFetchFriends) {
-        await batch.commit();
-        fetchFriends(appUser.id);
-      }
+      await batch.commit();
+      fetchFriends(userId);
     });
 
-    return () => unsubscribe();
+    // Listener for when I ACCEPT another user's request.
+    // I am the 'to' user. I only update my own friends list.
+    // The sender is responsible for deleting the request.
+    const receivedRequestsQuery = query(
+      collection(db, "friendRequests"),
+      where("to", "==", userId),
+      where("status", "==", "accepted")
+    );
+    const unsubscribeReceived = onSnapshot(receivedRequestsQuery, async (snapshot) => {
+        if (snapshot.empty) return;
+        
+        const userDocRef = doc(db, "users", userId);
+        const batch = writeBatch(db);
+
+        snapshot.docs.forEach(d => {
+            const request = d.data();
+            batch.update(userDocRef, { friends: arrayUnion(request.from) });
+        });
+
+        await batch.commit();
+        fetchFriends(userId);
+    });
+
+
+    return () => {
+      unsubscribeSent();
+      unsubscribeReceived();
+    };
   }, [appUser]);
 
   const handleLogout = () => {
