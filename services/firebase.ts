@@ -4,14 +4,16 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId} {
       allow read: if request.auth != null;
-      // A user can only write to their own document.
       allow write: if request.auth.uid == userId;
+
+      match /activity/{activityId} {
+        allow read, write: if request.auth.uid == userId;
+      }
     }
+
     match /friendRequests/{requestId} {
       allow create: if request.auth.uid == request.resource.data.from;
-      // The recipient of the request can update it (to change status).
       allow update: if request.auth.uid == resource.data.to;
-      // Either user involved can read or delete the request.
       allow read, delete: if request.auth.uid == resource.data.to || request.auth.uid == resource.data.from;
     }
   }
@@ -31,9 +33,12 @@ import {
   deleteDoc,
   getDoc,
   arrayUnion,
-  serverTimestamp
+  serverTimestamp,
+  Timestamp,
+  orderBy,
+  limit
 } from 'firebase/firestore';
-import { User, FriendRequest, Friend } from '../types';
+import { User, FriendRequest, Friend, DailyActivity } from '../types';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -146,5 +151,32 @@ export const getFriends = async (userId: string): Promise<Friend[]> => {
 
   return friends.filter((friend): friend is Friend => friend !== null);
 };
+
+export const getWeeklyXPActivity = async (userId: string): Promise<DailyActivity[]> => {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
+  const sevenDaysAgo = new Date(today);
+  sevenDaysAgo.setUTCDate(today.getUTCDate() - 6);
+  
+  const sevenDaysAgoTimestamp = Timestamp.fromDate(sevenDaysAgo);
+
+  const activityRef = collection(db, 'users', userId, 'activity');
+  const q = query(
+      activityRef, 
+      where('date', '>=', sevenDaysAgoTimestamp),
+      orderBy('date', 'desc'),
+      limit(7)
+  );
+
+  const querySnapshot = await getDocs(q);
+  const activityData: DailyActivity[] = [];
+  querySnapshot.forEach((doc) => {
+      activityData.push(doc.data() as DailyActivity);
+  });
+
+  return activityData;
+};
+
 
 export { app, auth, db };

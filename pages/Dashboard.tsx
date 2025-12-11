@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { ParchmentCard, ProgressBar, FantasyButton } from '../components/FantasyUI';
-import { User, Friend, FriendRequest } from '../types';
+import { User, Friend, FriendRequest, DailyActivity } from '../types';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { MOCK_CHART_DATA } from '../constants';
 import { Users, Search, Shield, Trophy, UserPlus, Check, X } from 'lucide-react';
 import { 
     searchUsersByUsername, 
     sendFriendRequest,
     getFriendRequests,
     acceptFriendRequest,
-    declineFriendRequest
+    declineFriendRequest,
+    getWeeklyXPActivity
 } from '../services/firebase';
 import { updateUserXP } from '../services/xpService';
+import { Timestamp } from 'firebase/firestore';
 
 interface DashboardProps {
   user: User;
@@ -19,12 +20,50 @@ interface DashboardProps {
   refreshFriends: () => void; 
 }
 
+const formatActivityData = (activity: DailyActivity[]) => {
+  const dataMap = new Map<string, number>();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+    dataMap.set(dayName, 0);
+  }
+
+  activity.forEach(a => {
+    const date = (a.date as unknown as Timestamp).toDate();
+    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+    if (dataMap.has(dayName)) {
+      dataMap.set(dayName, dataMap.get(dayName)! + a.xp);
+    }
+  });
+
+  return Array.from(dataMap.entries()).map(([name, xp]) => ({ name, xp })).reverse();
+};
+
 const Dashboard: React.FC<DashboardProps> = ({ user, friends, refreshFriends }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchMessage, setSearchMessage] = useState('');
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
+  const [weeklyActivity, setWeeklyActivity] = useState<{name: string, xp: number}[]>([]);
+
+  useEffect(() => {
+    if (!user.id) return;
+
+    const fetchWeeklyActivity = async () => {
+      try {
+        const activity = await getWeeklyXPActivity(user.id);
+        const formattedData = formatActivityData(activity);
+        setWeeklyActivity(formattedData);
+      } catch (error) {
+        console.error("Failed to fetch weekly activity:", error);
+      }
+    };
+
+    fetchWeeklyActivity();
+  }, [user.id, user.currentXP]);
+
 
   useEffect(() => {
       if (!user.id) return;
@@ -126,7 +165,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, friends, refreshFriends }) 
           <ParchmentCard title="Weekly Activity">
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={MOCK_CHART_DATA}>
+                <AreaChart data={weeklyActivity}>
                   <defs>
                     <linearGradient id="colorXp" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#ffb300" stopOpacity={0.8}/>

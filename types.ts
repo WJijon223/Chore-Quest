@@ -1,3 +1,5 @@
+import { Timestamp } from 'firebase/firestore';
+
 export enum BossState {
   ALIVE = 'ALIVE',
   DEFEATED = 'DEFEATED'
@@ -51,4 +53,9 @@ export interface FriendRequest {
   status: 'pending' | 'accepted' | 'declined';
   createdAt: any; // Firestore timestamp
   fromUser?: User; // Populated by the frontend
+}
+
+export interface DailyActivity {
+    date: Timestamp;
+    xp: number;
 }
