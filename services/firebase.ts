@@ -142,7 +142,6 @@ export const getFriendRequests = async (userId: string): Promise<FriendRequest[]
   return populatedRequests.filter(Boolean) as FriendRequest[];
 };
 
-// Updated to be more secure
 export const acceptFriendRequest = async (requestId: string) => {
     const requestRef = doc(db, 'friendRequests', requestId);
     await updateDoc(requestRef, { status: 'accepted' });
@@ -210,4 +209,3 @@ export const getWeeklyXPActivity = async (userId: string): Promise<DailyActivity
 
 
 export { app, auth, db };
-''
