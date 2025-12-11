@@ -14,7 +14,7 @@ type Page = 'dashboard' | 'bosses';
 type AuthView = 'login' | 'signup';
 
 const DEFAULT_USER_DATA = {
-    avatar: 'https://i.imgur.com/8a5tC2s.png',
+    avatar: 'https://placehold.co/128x128/EED8B7/6B4F3A/png?text=Hero',
     level: 1,
     currentXP: 0,
     xpToNextLevel: 100,
