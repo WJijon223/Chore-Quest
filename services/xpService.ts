@@ -2,7 +2,16 @@ import { doc, updateDoc, collection, increment, runTransaction, Timestamp, getDo
 import { db } from './firebase';
 import { User } from '../types';
 
+const BASE_XP_TO_NEXT_LEVEL = 100;
 const LEVEL_SCALING_FACTOR = 1.5;
+
+export const getXPForLevel = (level: number): number => {
+  let xp = BASE_XP_TO_NEXT_LEVEL;
+  for (let i = 1; i < level; i++) {
+    xp = Math.floor(xp * LEVEL_SCALING_FACTOR);
+  }
+  return xp;
+};
 
 const getUTCDateString = () => {
   const date = new Date();
@@ -10,10 +19,6 @@ const getUTCDateString = () => {
   const month = String(date.getUTCMonth() + 1).padStart(2, '0');
   const day = String(date.getUTCDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
-};
-
-export const calculateNewXpToNextLevel = (currentXpToNextLevel: number): number => {
-  return Math.floor(currentXpToNextLevel * LEVEL_SCALING_FACTOR);
 };
 
 export const updateUserXP = async (user: User, xpGained: number): Promise<void> => {
@@ -25,7 +30,6 @@ export const updateUserXP = async (user: User, xpGained: number): Promise<void> 
 
   try {
     await runTransaction(db, async (transaction) => {
-      // Read operations first
       const userDoc = await transaction.get(userRef);
       const activityDoc = await transaction.get(activityRef);
 
@@ -43,7 +47,7 @@ export const updateUserXP = async (user: User, xpGained: number): Promise<void> 
       if (newCurrentXP >= newXpToNextLevel) {
         newLevel += 1;
         newCurrentXP -= newXpToNextLevel;
-        newXpToNextLevel = calculateNewXpToNextLevel(newXpToNextLevel);
+        newXpToNextLevel = getXPForLevel(newLevel);
 
         updates.level = newLevel;
         updates.currentXP = newCurrentXP;
@@ -52,7 +56,6 @@ export const updateUserXP = async (user: User, xpGained: number): Promise<void> 
         updates.currentXP = newCurrentXP;
       }
       
-      // Write operations last
       transaction.update(userRef, updates);
 
       if (activityDoc.exists()) {
@@ -63,6 +66,5 @@ export const updateUserXP = async (user: User, xpGained: number): Promise<void> 
     });
   } catch (error) {
     console.error("XP update transaction failed: ", error);
-    // Optionally re-throw or handle the error as needed
   }
 };
