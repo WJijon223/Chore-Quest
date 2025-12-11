@@ -13,8 +13,6 @@ export const getXPForLevel = (level: number): number => {
   return xp;
 };
 
-// Use the user's local date to create the document ID.
-// This avoids timezone issues where 'today' in UTC could be 'yesterday' for the user.
 const getLocalDateString = () => {
   const date = new Date();
   const year = date.getFullYear();
@@ -27,12 +25,11 @@ export const updateUserXP = async (user: User, xpGained: number): Promise<void> 
   if (xpGained <= 0) return;
 
   const userRef = doc(db, 'users', user.id);
-  const today = getLocalDateString(); // Use local date for the ID
+  const today = getLocalDateString();
   const activityRef = doc(db, 'users', user.id, 'activity', today);
 
   try {
     await runTransaction(db, async (transaction) => {
-      // --- READS FIRST ---
       const userDoc = await transaction.get(userRef);
       const activityDoc = await transaction.get(activityRef);
 
@@ -47,7 +44,6 @@ export const updateUserXP = async (user: User, xpGained: number): Promise<void> 
       let newXpToNextLevel = userData.xpToNextLevel;
       const updates: { [key: string]: any } = {};
 
-      // Handle leveling up (including multiple levels at once)
       while (newCurrentXP >= newXpToNextLevel) {
         newLevel += 1;
         newCurrentXP -= newXpToNextLevel;
@@ -58,14 +54,11 @@ export const updateUserXP = async (user: User, xpGained: number): Promise<void> 
       updates.currentXP = newCurrentXP;
       updates.xpToNextLevel = newXpToNextLevel;
       
-      // --- WRITES LAST ---
       transaction.update(userRef, updates);
 
-      // Update or create the daily activity document
       if (activityDoc.exists()) {
         transaction.update(activityRef, { xp: increment(xpGained) });
       } else {
-        // Store date as a timestamp for more flexible querying later
         transaction.set(activityRef, { xp: xpGained, date: Timestamp.now() });
       }
     });
