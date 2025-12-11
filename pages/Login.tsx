@@ -5,11 +5,10 @@ import { auth, signInWithGoogle } from '../services/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
 interface LoginProps {
-  onLogin: () => void;
   onNavigateToSignUp: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToSignUp }) => {
+const Login: React.FC<LoginProps> = ({ onNavigateToSignUp }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +18,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToSignUp }) => {
     setError(null);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      onLogin();
     } catch (error) {
       console.error("Error signing in with email and password", error);
       setError("Invalid email or password. Please try again.");
@@ -30,7 +28,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToSignUp }) => {
     setError(null);
     try {
       await signInWithGoogle();
-      onLogin();
     } catch (error) {
       console.error("Error signing in with Google", error);
       setError("There was a problem signing in with Google. Please try again.");

@@ -25,7 +25,6 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [authView, setAuthView] = useState<AuthView>('login');
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
-  const [needsUsername, setNeedsUsername] = useState(false);
 
   const fetchFriends = async (userId: string) => {
     try {
@@ -53,14 +52,8 @@ const App: React.FC = () => {
         userSnapshotUnsubscribe = onSnapshot(userDocRef, async (userDoc) => {
           if (userDoc.exists()) {
             const userData = userDoc.data() as User;
-            if (userData.username === 'New Hero') {
-              setNeedsUsername(true);
-            } else {
-              setAppUser({ id: user.uid, ...userData });
-            }
-          } else {
-            // This case is now handled by the onSignUp function
-          }
+            setAppUser({ id: user.uid, ...userData });
+          } 
           fetchFriends(user.uid);
           setLoading(false);
         }, (error) => {
@@ -155,11 +148,6 @@ const App: React.FC = () => {
     };
 
     await setDoc(userDocRef, newUserData, { merge: true });
-    
-    if (newUserData.username === 'New Hero') {
-      setNeedsUsername(true);
-    }
-    
     setAppUser(newUserData);
     setAuthView('login');
   };
@@ -179,20 +167,19 @@ const App: React.FC = () => {
       return (
         <SignUp 
           onSignUp={handleSignUp} 
-          onNavigateToLogin={() => setAuthView('login')} 
+          onNavigateToLogin={() => setAuthVw('login')} 
         />
       );
     }
     return (
       <Login 
-        onLogin={() => {}}
         onNavigateToSignUp={() => setAuthView('signup')} 
       />
     );
   }
 
-  if (needsUsername) {
-    return <GoogleHeroSetup onSetupComplete={() => setNeedsUsername(false)} />;
+  if (appUser.needsUsernameSetup) {
+    return <GoogleHeroSetup user={appUser} />;
   }
 
   return (

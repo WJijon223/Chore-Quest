@@ -37,6 +37,7 @@ export interface User {
   xpToNextLevel: number;
   bossesDefeated: number;
   friends: string[];
+  needsUsernameSetup?: boolean;
 }
 
 export interface Friend {
