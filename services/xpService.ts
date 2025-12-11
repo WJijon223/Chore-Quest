@@ -32,7 +32,10 @@ export const updateUserXP = async (user: User, xpGained: number): Promise<void> 
 
   try {
     await runTransaction(db, async (transaction) => {
+      // --- READS FIRST ---
       const userDoc = await transaction.get(userRef);
+      const activityDoc = await transaction.get(activityRef);
+
       if (!userDoc.exists()) {
         throw new Error("User document does not exist!");
       }
@@ -55,10 +58,10 @@ export const updateUserXP = async (user: User, xpGained: number): Promise<void> 
       updates.currentXP = newCurrentXP;
       updates.xpToNextLevel = newXpToNextLevel;
       
+      // --- WRITES LAST ---
       transaction.update(userRef, updates);
 
       // Update or create the daily activity document
-      const activityDoc = await transaction.get(activityRef);
       if (activityDoc.exists()) {
         transaction.update(activityRef, { xp: increment(xpGained) });
       } else {
