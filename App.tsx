@@ -95,6 +95,7 @@ const App: React.FC = () => {
     const newUserData: User = {
       id: user.uid,
       username: username || user.displayName || 'New Hero',
+      email: user.email || '',
       avatar: user.photoURL || 'https://placehold.co/128x128/EED8B7/6B4F3A/png?text=Hero',
       level: 1,
       currentXP: 0,

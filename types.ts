@@ -30,6 +30,7 @@ export interface Boss {
 export interface User {
   id: string;
   username: string;
+  email: string;
   avatar: string;
   level: number;
   currentXP: number;
