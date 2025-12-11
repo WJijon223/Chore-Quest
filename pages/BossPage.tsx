@@ -1,19 +1,27 @@
-import React, { useState } from 'react';
-import { Boss, BossState } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Boss, BossState, User, Chore } from '../types';
 import { ParchmentCard, FantasyButton, ProgressBar } from '../components/FantasyUI';
 import { Skull, CheckSquare, Sparkles, Filter, Swords, Clock, HeartCrack } from 'lucide-react';
 import { generateBossFromDescription } from '../services/geminiService';
+import { addBoss, updateBoss } from '../services/firebase';
+import { updateUserXP } from '../services/xpService';
 
 interface BossPageProps {
   bosses: Boss[];
+  user: User;
 }
 
-const BossPage: React.FC<BossPageProps> = ({ bosses: initialBosses }) => {
-  const [bosses, setBosses] = useState<Boss[]>(initialBosses);
-  const [selectedBossId, setSelectedBossId] = useState<string | null>(initialBosses[0]?.id || null);
+const BossPage: React.FC<BossPageProps> = ({ bosses, user }) => {
+  const [selectedBossId, setSelectedBossId] = useState<string | null>(bosses[0]?.id || null);
   const [filter, setFilter] = useState<'ALL' | 'ALIVE' | 'DEFEATED'>('ALL');
   const [isGenerating, setIsGenerating] = useState(false);
   const [prompt, setPrompt] = useState('');
+
+  useEffect(() => {
+    if (!selectedBossId && bosses.length > 0) {
+      setSelectedBossId(bosses[0].id);
+    }
+  }, [bosses, selectedBossId]);
 
   const selectedBoss = bosses.find(b => b.id === selectedBossId);
 
@@ -23,30 +31,52 @@ const BossPage: React.FC<BossPageProps> = ({ bosses: initialBosses }) => {
   });
 
   const handleGenerate = async () => {
-    if (!prompt) return;
+    if (!prompt || !user) return;
     setIsGenerating(true);
-    // Simulate API delay if no key, or actual call
     try {
       const partialBoss = await generateBossFromDescription(prompt);
-      const newBoss: Boss = {
-        id: `b-${Date.now()}`,
+      const newBoss: Omit<Boss, 'id'> = {
         name: partialBoss.name || "Unknown Beast",
         description: partialBoss.description || "A mysterious entity.",
-        image: "https://picsum.photos/400/400?grayscale", // Placeholder
+        image: `https://api.dicebear.com/7.x/adventurer/svg?seed=${partialBoss.name || 'boss'}`,
         totalHealth: partialBoss.totalHealth || 100,
         currentHealth: partialBoss.totalHealth || 100,
         state: BossState.ALIVE,
         levelRequirement: 1,
-        chores: partialBoss.chores as any[] || []
+        chores: partialBoss.chores as Chore[] || []
       };
-      setBosses(prev => [...prev, newBoss]);
-      setSelectedBossId(newBoss.id);
+      const newBossId = await addBoss(user.id, newBoss);
+      setSelectedBossId(newBossId);
       setPrompt('');
     } catch (e) {
       console.error(e);
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleChoreCompletion = async (choreId: string) => {
+    if (!selectedBoss || !user) return;
+
+    const choreToUpdate = selectedBoss.chores.find(c => c.id === choreId);
+    if (!choreToUpdate || choreToUpdate.completed) return;
+
+    await updateUserXP(user, choreToUpdate.xp);
+
+    const updatedChores = selectedBoss.chores.map(c => 
+      c.id === choreId ? { ...c, completed: true } : c
+    );
+
+    const newHealth = selectedBoss.currentHealth - choreToUpdate.damage;
+    const isDefeated = newHealth <= 0;
+
+    const updatedBoss: Partial<Boss> = {
+      chores: updatedChores,
+      currentHealth: isDefeated ? 0 : newHealth,
+      state: isDefeated ? BossState.DEFEATED : selectedBoss.state
+    };
+
+    await updateBoss(user.id, selectedBoss.id, updatedBoss);
   };
 
   return (
@@ -168,14 +198,16 @@ const BossPage: React.FC<BossPageProps> = ({ bosses: initialBosses }) => {
 
                        {/* Action Button */}
                        <button 
+                         onClick={() => handleChoreCompletion(chore.id)}
                          className={`
                            h-16 w-16 shrink-0 flex items-center justify-center rounded-full border-2 transition-all duration-300 my-2 shadow-inner
                            ${chore.completed 
                              ? 'bg-green-700 border-green-900 text-parchment-100' 
                              : 'bg-parchment-200 border-parchment-800 text-parchment-800 hover:bg-danger hover:text-white hover:border-red-900 hover:scale-110'
                            }
-                           ${selectedBoss.state === BossState.DEFEATED ? 'cursor-not-allowed opacity-50' : ''}
+                           ${selectedBoss.state === BossState.DEFEATED || chore.completed ? 'cursor-not-allowed opacity-50' : ''}
                          `}
+                        disabled={selectedBoss.state === BossState.DEFEATED || chore.completed}
                        >
                          {chore.completed ? <CheckSquare size={32} /> : <Swords size={32} className={!chore.completed ? "animate-pulse" : ""} />}
                        </button>

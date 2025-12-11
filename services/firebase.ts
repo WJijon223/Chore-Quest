@@ -9,6 +9,9 @@ service cloud.firestore {
       match /activity/{activityId} {
         allow read, write: if request.auth.uid == userId;
       }
+      match /bosses/{bossId} {
+        allow read, write: if request.auth.uid == userId;
+      }
     }
 
     match /friendRequests/{requestId} {
@@ -39,7 +42,7 @@ import {
   limit,
   setDoc
 } from 'firebase/firestore';
-import { User, FriendRequest, Friend, DailyActivity } from '../types';
+import { User, FriendRequest, Friend, DailyActivity, Boss } from '../types';
 import { getXPForLevel } from './xpService';
 
 const firebaseConfig = {
@@ -216,5 +219,26 @@ export const getWeeklyXPActivity = async (userId: string): Promise<DailyActivity
   return activityData;
 };
 
+export const getBosses = async (userId: string): Promise<Boss[]> => {
+    const bossesRef = collection(db, 'users', userId, 'bosses');
+    const q = query(bossesRef);
+    const querySnapshot = await getDocs(q);
+    const bosses: Boss[] = [];
+    querySnapshot.forEach((doc) => {
+        bosses.push({ id: doc.id, ...doc.data() } as Boss);
+    });
+    return bosses;
+}
+
+export const addBoss = async (userId: string, boss: Omit<Boss, 'id'>): Promise<string> => {
+    const bossesRef = collection(db, 'users', userId, 'bosses');
+    const docRef = await addDoc(bossesRef, boss);
+    return docRef.id;
+}
+
+export const updateBoss = async (userId: string, bossId: string, updates: Partial<Boss>): Promise<void> => {
+    const bossRef = doc(db, 'users', userId, 'bosses', bossId);
+    await updateDoc(bossRef, updates);
+}
 
 export { app, auth, db };
