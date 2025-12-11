@@ -30,6 +30,15 @@ const App: React.FC = () => {
   const [authView, setAuthView] = useState<AuthView>('login');
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
 
+  const fetchFriends = async (userId: string) => {
+    try {
+      const friendsData = await getFriends(userId);
+      setFriends(friendsData);
+    } catch (error) {
+      console.error("Error fetching friends:", error);
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
@@ -44,8 +53,7 @@ const App: React.FC = () => {
             await setDoc(userDocRef, completeUserData, { merge: true });
             setAppUser({ id: user.uid, ...completeUserData } as User);
 
-            const friendsData = await getFriends(user.uid);
-            setFriends(friendsData);
+            fetchFriends(user.uid);
 
         } catch (error) {
             console.error("Error fetching or creating user document:", error);
@@ -99,7 +107,11 @@ const App: React.FC = () => {
       onLogout={handleLogout}
     >
       {currentPage === 'dashboard' && (
-        <Dashboard user={appUser} friends={friends} />
+        <Dashboard 
+          user={appUser} 
+          friends={friends} 
+          refreshFriends={() => fetchFriends(appUser.id)} 
+        />
       )}
       {currentPage === 'bosses' && (
         <BossPage bosses={MOCK_BOSSES} />

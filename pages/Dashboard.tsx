@@ -15,9 +15,10 @@ import {
 interface DashboardProps {
   user: User;
   friends: Friend[];
+  refreshFriends: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ user, friends }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, friends, refreshFriends }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -76,7 +77,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, friends }) => {
       try {
         await acceptFriendRequest(request.id, request.from, user.id);
         setFriendRequests(prev => prev.filter(r => r.id !== request.id));
-        // Note: You might want to trigger a refresh of the friends list here
+        refreshFriends();
       } catch (error) {
           console.error("Error accepting request:", error);
       }
