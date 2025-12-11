@@ -35,11 +35,10 @@ const BossPage: React.FC<BossPageProps> = ({ bosses, user }) => {
     setIsGenerating(true);
     try {
       const partialBoss = await generateBossFromDescription(prompt);
-      const seed = encodeURIComponent(partialBoss.name || 'boss');
       const newBoss: Omit<Boss, 'id'> = {
         name: partialBoss.name || "Unknown Beast",
         description: partialBoss.description || "A mysterious entity.",
-        image: `https://robohash.org/${seed}?set=set2`,
+        image: partialBoss.image || `https://loremflickr.com/320/240/monster,fantasy/all?random=${Date.now()}`,
         totalHealth: partialBoss.totalHealth || 100,
         currentHealth: partialBoss.totalHealth || 100,
         state: BossState.ALIVE,

@@ -1,21 +1,46 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Boss, Chore, BossState } from "../types";
 
-// NOTE: Since the prompt requested "no functionality right now" but "focus on design",
-// This service file is set up for the future integration but returns mock data structure for now
-// to prevent API errors without a valid key in the demo environment.
-
-// In a real scenario, ensure process.env.API_KEY is set.
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 const ai = new GoogleGenAI({ apiKey });
 
+const getDndMonsterImage = async (): Promise<string> => {
+  try {
+    const response = await fetch("https://www.dnd5eapi.co/api/monsters");
+    const data = await response.json();
+    const monsters = data.results;
+    
+    let monsterData;
+    let imageUrl;
+
+    // Keep trying until we find a monster with an image
+    while (!imageUrl) {
+        const randomMonster = monsters[Math.floor(Math.random() * monsters.length)];
+        const monsterResponse = await fetch(`https://www.dnd5eapi.co${randomMonster.url}`);
+        monsterData = await monsterResponse.json();
+        if (monsterData.image) {
+            imageUrl = `https://www.dnd5eapi.co${monsterData.image}`;
+        }
+    }
+    return imageUrl;
+  } catch (error) {
+    console.error("Failed to fetch D&D monster image, returning fallback.", error);
+    // Return a fallback image in case the API fails
+    return `https://loremflickr.com/320/240/monster,fantasy/all?random=${Date.now()}`;
+  }
+};
+
 export const generateBossFromDescription = async (description: string): Promise<Partial<Boss>> => {
-  if (!import.meta.env.VITE_GEMINI_API_KEY) {
+  const imageUrl = await getDndMonsterImage();
+
+  if (!apiKey) {
     console.warn("No API Key found. Returning mock generated boss.");
+    const mockName = "The Generated Grime Lord";
     return {
-      name: "The Generated Grime Lord",
+      name: mockName,
       description: description,
       totalHealth: 100,
+      image: imageUrl,
       chores: [
         { id: 'gen1', title: 'Sweeping Strike', xp: 50, damage: 25, difficulty: 'Medium', estimatedTime: 15, completed: false },
         { id: 'gen2', title: 'Mop the Abyss', xp: 75, damage: 35, difficulty: 'Hard', estimatedTime: 25, completed: false }
@@ -61,6 +86,7 @@ export const generateBossFromDescription = async (description: string): Promise<
     return {
       name: data.name,
       description: data.bossDescription,
+      image: imageUrl,
       totalHealth: data.healthPoints || 100,
       currentHealth: data.healthPoints || 100,
       state: BossState.ALIVE,
@@ -78,6 +104,16 @@ export const generateBossFromDescription = async (description: string): Promise<
 
   } catch (error) {
     console.error("AI Generation failed", error);
-    throw error;
+    // Also return a fallback boss if AI generation fails
+    return {
+      name: "The Error-Spawned Ogre",
+      description: "A bug in the system has summoned this beast!",
+      image: imageUrl,
+      totalHealth: 100,
+      currentHealth: 100,
+      state: BossState.ALIVE,
+      levelRequirement: 1,
+      chores: []
+    };
   }
 };
