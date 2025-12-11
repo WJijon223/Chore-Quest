@@ -6,11 +6,11 @@ import { Boss, Chore, BossState } from "../types";
 // to prevent API errors without a valid key in the demo environment.
 
 // In a real scenario, ensure process.env.API_KEY is set.
-const apiKey = process.env.API_KEY || 'dummy_key';
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 const ai = new GoogleGenAI({ apiKey });
 
 export const generateBossFromDescription = async (description: string): Promise<Partial<Boss>> => {
-  if (!process.env.API_KEY) {
+  if (!import.meta.env.VITE_GEMINI_API_KEY) {
     console.warn("No API Key found. Returning mock generated boss.");
     return {
       name: "The Generated Grime Lord",
