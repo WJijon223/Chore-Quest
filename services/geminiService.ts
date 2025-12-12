@@ -36,6 +36,7 @@ export const generateBossFromDescription = async (description: string, userId: s
   const prompt = `Generate a fantasy boss based on this household cleaning task: "${description}". 
   Also generate 3-5 sub-tasks (chores) that act as attacks to defeat it.
   For each chore, determine a damage value (integer between 10-50) that represents how much health it removes from the boss.
+  The boss health should equal the sum of all chore damage values.
   Return JSON.`;
 
   if (!apiKey) {
@@ -87,6 +88,10 @@ export const generateBossFromDescription = async (description: string, userId: s
     
     await addGeminiAPICall(userId, { prompt, response: response.text });
 
+    if (!data.name || !data.chores || data.chores.length === 0) {
+        throw new Error("AI response is missing critical data (name or chores).");
+    }
+
     return {
       name: data.name,
       description: data.bossDescription,
@@ -108,14 +113,14 @@ export const generateBossFromDescription = async (description: string, userId: s
 
   } catch (error) {
     console.error("AI Generation failed", error);
-    // Also return a fallback boss if AI generation fails
+    // Return a fallback boss if AI generation fails, but in a defeated state.
     return {
       name: "The Error-Spawned Ogre",
-      description: "A bug in the system has summoned this beast!",
+      description: "A bug in the system has summoned this beast! Defeat it by fixing the error.",
       image: imageUrl,
       totalHealth: 100,
-      currentHealth: 100,
-      state: BossState.ALIVE,
+      currentHealth: 0,
+      state: BossState.DEFEATED,
       levelRequirement: 1,
       chores: []
     };
