@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Boss, Chore, BossState } from "../types";
+import { addGeminiAPICall } from "./firebase";
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 const ai = new GoogleGenAI({ apiKey });
@@ -30,8 +31,12 @@ const getDndMonsterImage = async (): Promise<string> => {
   }
 };
 
-export const generateBossFromDescription = async (description: string): Promise<Partial<Boss>> => {
+export const generateBossFromDescription = async (description: string, userId: string): Promise<Partial<Boss>> => {
   const imageUrl = await getDndMonsterImage();
+  const prompt = `Generate a fantasy boss based on this household cleaning task: "${description}". 
+  Also generate 3-5 sub-tasks (chores) that act as attacks to defeat it.
+  For each chore, determine a damage value (integer between 10-50) that represents how much health it removes from the boss.
+  Return JSON.`;
 
   if (!apiKey) {
     console.warn("No API Key found. Returning mock generated boss.");
@@ -51,10 +56,7 @@ export const generateBossFromDescription = async (description: string): Promise<
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Generate a fantasy boss based on this household cleaning task: "${description}". 
-      Also generate 3-5 sub-tasks (chores) that act as attacks to defeat it.
-      For each chore, determine a damage value (integer between 10-50) that represents how much health it removes from the boss.
-      Return JSON.`,
+      contents: prompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -83,6 +85,8 @@ export const generateBossFromDescription = async (description: string): Promise<
 
     const data = JSON.parse(response.text || "{}");
     
+    await addGeminiAPICall(userId, { prompt, response: response.text });
+
     return {
       name: data.name,
       description: data.bossDescription,

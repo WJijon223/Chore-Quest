@@ -1,10 +1,10 @@
 import React from 'react';
-import { User, Swords, Scroll, LogOut } from 'lucide-react';
+import { User, Swords, Scroll, LogOut, History } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
-  activePage: 'dashboard' | 'bosses';
-  onNavigate: (page: 'dashboard' | 'bosses') => void;
+  activePage: 'dashboard' | 'bosses' | 'history';
+  onNavigate: (page: 'dashboard' | 'bosses' | 'history') => void;
   onLogout: () => void;
 }
 
@@ -32,6 +32,12 @@ const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, onLog
             onClick={() => onNavigate('bosses')} 
             icon={Scroll}
             label="Bosses"
+          />
+          <NavButton 
+            active={activePage === 'history'} 
+            onClick={() => onNavigate('history')} 
+            icon={History}
+            label="History"
           />
         </div>
 

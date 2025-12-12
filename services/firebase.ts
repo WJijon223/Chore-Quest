@@ -12,6 +12,9 @@ service cloud.firestore {
       match /bosses/{bossId} {
         allow read, write: if request.auth.uid == userId;
       }
+      match /geminiHistory/{historyId} {
+        allow read, write: if request.auth.uid == userId;
+      }
     }
 
     match /friendRequests/{requestId} {
@@ -42,7 +45,7 @@ import {
   limit,
   setDoc
 } from 'firebase/firestore';
-import { User, FriendRequest, Friend, DailyActivity, Boss } from '../types';
+import { User, FriendRequest, Friend, DailyActivity, Boss, GeminiAPICall } from '../types';
 import { getXPForLevel } from './xpService';
 
 const firebaseConfig = {
@@ -241,4 +244,25 @@ export const updateBoss = async (userId: string, bossId: string, updates: Partia
     await updateDoc(bossRef, updates);
 }
 
+export const getGeminiAPICalls = async (userId: string): Promise<GeminiAPICall[]> => {
+  const historyRef = collection(db, 'users', userId, 'geminiHistory');
+  const q = query(historyRef, orderBy('timestamp', 'desc'));
+  const querySnapshot = await getDocs(q);
+  const history: GeminiAPICall[] = [];
+  querySnapshot.forEach((doc) => {
+      history.push({ id: doc.id, ...doc.data() } as GeminiAPICall);
+  });
+  return history;
+}
+
+export const addGeminiAPICall = async (userId: string, call: Omit<GeminiAPICall, 'id' | 'timestamp'>): Promise<string> => {
+  const historyRef = collection(db, 'users', userId, 'geminiHistory');
+  const docRef = await addDoc(historyRef, {
+      ...call,
+      timestamp: serverTimestamp()
+  });
+  return docRef.id;
+}
+
 export { app, auth, db };
+''

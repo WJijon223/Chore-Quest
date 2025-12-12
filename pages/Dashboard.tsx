@@ -11,7 +11,6 @@ import {
     declineFriendRequest,
     getWeeklyXPActivity
 } from '../services/firebase';
-import { updateUserXP } from '../services/xpService';
 import { Timestamp } from 'firebase/firestore';
 
 interface DashboardProps {
@@ -134,10 +133,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, friends, refreshFriends }) 
       }
   };
 
-  const handleGainXP = () => {
-    updateUserXP(user, 20);
-  };
-
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header Section */}
@@ -186,9 +181,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, friends, refreshFriends }) 
                   <Area type="monotone" dataKey="xp" stroke="#5d4037" fillOpacity={1} fill="url(#colorXp)" />
                 </AreaChart>
               </ResponsiveContainer>
-            </div>
-            <div className="mt-4">
-              <FantasyButton onClick={handleGainXP}>Gain 20 XP</FantasyButton>
             </div>
           </ParchmentCard>
 
