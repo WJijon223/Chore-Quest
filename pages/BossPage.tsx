@@ -146,102 +146,103 @@ const BossPage: React.FC<BossPageProps> = ({ bosses, user }) => {
       <div className="flex-1 h-full flex flex-col">
         {selectedBoss ? (
           <ParchmentCard className="h-full flex flex-col overflow-hidden relative p-0">
-             {/* Boss Header Image - Reduced height from h-48 to h-32 */}
-             <div className="h-32 w-full relative shrink-0">
-                <div className="absolute inset-0 bg-black/40 z-10"></div>
-                <img src={selectedBoss.image} alt={selectedBoss.name} className="w-full h-full object-cover sepia-[.4]" />
-                <div className="absolute bottom-3 left-6 z-20">
-                  <h2 className="text-2xl font-serif font-bold text-parchment-100 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
-                    {selectedBoss.name}
-                  </h2>
+          
+          {/* Top Section: Image + Title/Desc */}
+          <div className="flex gap-6 p-6">
+            {/* Image */}
+            <div className="w-1/3 relative shrink-0">
+              <img src={selectedBoss.image} alt={selectedBoss.name} className="w-full h-auto object-cover rounded-lg border-2 border-parchment-800 sepia-[.4]" />
+              {selectedBoss.state === BossState.DEFEATED && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-lg">
+                  <h1 className="text-4xl text-red-700 font-serif font-black border-4 border-red-700 p-2 transform -rotate-12">DEFEATED</h1>
                 </div>
-                {selectedBoss.state === BossState.DEFEATED && (
-                  <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <h1 className="text-5xl text-red-700 font-serif font-black border-4 border-red-700 p-2 transform -rotate-12">DEFEATED</h1>
-                  </div>
-                )}
-             </div>
+              )}
+            </div>
 
-             <div className="p-6 pt-4 flex-1 flex flex-col overflow-hidden">
-               {/* Boss Stats - Compacted */}
-               <div className="mb-4 space-y-2 shrink-0">
-                 <p className="font-serif italic text-sm text-parchment-900/80 mb-2 border-l-4 border-gold pl-3 line-clamp-2">
-                   "{selectedBoss.description}"
-                 </p>
-                 <ProgressBar 
-                   current={selectedBoss.currentHealth} 
-                   max={selectedBoss.totalHealth} 
-                   type="health" 
-                   label="Boss Health"
-                 />
-               </div>
+            {/* Info */}
+            <div className="flex-1">
+              <h2 className="text-3xl font-serif font-bold text-parchment-800 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] mb-2">
+                {selectedBoss.name}
+              </h2>
+              <p className="font-serif italic text-sm text-parchment-900/80 border-l-4 border-gold pl-3">
+                "{selectedBoss.description}"
+              </p>
+            </div>
+          </div>
 
-               {/* Chores Grid - Scrollable */}
-               <div className="flex-1 overflow-y-auto scroll-bar pr-2">
-                 <h3 className="font-serif font-bold text-xl mb-4 text-parchment-900 border-b-2 border-parchment-800 pb-2 uppercase tracking-widest sticky top-0 bg-parchment-200 z-10 shadow-sm">
-                   Required Attacks
-                 </h3>
-                 
-                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pb-4">
-                   {selectedBoss.chores.map(chore => (
-                     <div key={chore.id} className={`
-                        flex flex-col items-center justify-between text-center p-3 rounded-lg border-2 shadow-md transition-all group min-h-[180px]
+          {/* Bottom Section: Full Width Content */}
+          <div className="px-6 pb-6 flex-1 flex flex-col overflow-hidden">
+            {/* Health Bar */}
+            <div className="mb-4 shrink-0">
+              <ProgressBar
+                current={selectedBoss.currentHealth}
+                max={selectedBoss.totalHealth}
+                type="health"
+                label="Boss Health"
+              />
+            </div>
+
+            {/* Chores Grid - Scrollable */}
+            <div className="flex-1 overflow-y-auto scroll-bar pr-2">
+              <h3 className="font-serif font-bold text-xl mb-4 text-parchment-900 border-b-2 border-parchment-800 pb-2 uppercase tracking-widest sticky top-0 bg-parchment-200 z-10 shadow-sm">
+                Required Attacks
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pb-4">
+                {selectedBoss.chores.map(chore => (
+                  <div key={chore.id} className={`
+                     flex flex-col items-center justify-between text-center p-3 rounded-lg border-2 shadow-md transition-all group min-h-[160px]
+                     ${chore.completed 
+                        ? 'bg-parchment-200/50 border-parchment-800/40 opacity-80' 
+                        : 'bg-parchment-100 border-parchment-800 hover:shadow-[0_5px_15px_rgba(0,0,0,0.1)] hover:-translate-y-1 hover:border-gold'
+                     }
+                  `}>
+                    <p className={`font-serif font-black text-sm leading-tight h-10 flex items-center justify-center w-full ${chore.completed ? 'line-through text-parchment-800/60' : 'text-parchment-900'}`}>
+                      {chore.title}
+                    </p>
+
+                    <button 
+                      onClick={() => handleChoreCompletion(chore.id)}
+                      className={`
+                        h-14 w-14 shrink-0 flex items-center justify-center rounded-full border-2 transition-all duration-300 my-2 shadow-inner
                         ${chore.completed 
-                           ? 'bg-parchment-200/50 border-parchment-800/40 opacity-80' 
-                           : 'bg-parchment-100 border-parchment-800 hover:shadow-[0_5px_15px_rgba(0,0,0,0.1)] hover:-translate-y-1 hover:border-gold'
+                          ? 'bg-green-700 border-green-900 text-parchment-100' 
+                          : 'bg-parchment-200 border-parchment-800 text-parchment-800 hover:bg-danger hover:text-white hover:border-red-900 hover:scale-110'
                         }
-                     `}>
-                       {/* Title */}
-                       <p className={`font-serif font-black text-sm leading-tight h-10 flex items-center justify-center w-full ${chore.completed ? 'line-through text-parchment-800/60' : 'text-parchment-900'}`}>
-                         {chore.title}
-                       </p>
-
-                       {/* Action Button */}
-                       <button 
-                         onClick={() => handleChoreCompletion(chore.id)}
-                         className={`
-                           h-16 w-16 shrink-0 flex items-center justify-center rounded-full border-2 transition-all duration-300 my-2 shadow-inner
-                           ${chore.completed 
-                             ? 'bg-green-700 border-green-900 text-parchment-100' 
-                             : 'bg-parchment-200 border-parchment-800 text-parchment-800 hover:bg-danger hover:text-white hover:border-red-900 hover:scale-110'
-                           }
-                           ${selectedBoss.state === BossState.DEFEATED || chore.completed ? 'cursor-not-allowed opacity-50' : ''}
-                         `}
-                        disabled={selectedBoss.state === BossState.DEFEATED || chore.completed}
-                       >
-                         {chore.completed ? <CheckSquare size={32} /> : <Swords size={32} className={!chore.completed ? "animate-pulse" : ""} />}
-                       </button>
-                       
-                       {/* Stats Footer */}
-                       <div className="w-full space-y-2">
-                         <div className="flex justify-center gap-2">
-                           <span className="font-bold font-serif text-xs text-gold-dim bg-parchment-800/10 px-2 py-0.5 rounded border border-parchment-800/20" title="Experience Reward">
-                             +{chore.xp} XP
-                           </span>
-                           <span className="font-bold font-serif text-xs text-red-700 bg-red-100/50 px-2 py-0.5 rounded border border-red-200 flex items-center gap-1" title="Boss Damage">
-                             <HeartCrack size={10} /> -{chore.damage}
-                           </span>
-                         </div>
-                         
-                         <div className="flex justify-center gap-2 text-[10px] font-bold uppercase tracking-wide text-parchment-800/80">
-                           <span className="flex items-center gap-0.5 bg-parchment-300 px-1.5 py-0.5 rounded-full">
-                             <Clock size={10} /> {chore.estimatedTime}m
-                           </span>
-                           <span className={`
-                             px-1.5 py-0.5 rounded-full border
-                             ${chore.difficulty === 'Hard' ? 'text-red-800 bg-red-100 border-red-200' : 
-                               chore.difficulty === 'Medium' ? 'text-yellow-800 bg-yellow-100 border-yellow-200' : 
-                               'text-green-800 bg-green-100 border-green-200'}
-                           `}>{chore.difficulty}</span>
-                         </div>
+                        ${selectedBoss.state === BossState.DEFEATED || chore.completed ? 'cursor-not-allowed opacity-50' : ''}
+                      `}
+                     disabled={selectedBoss.state === BossState.DEFEATED || chore.completed}
+                    >
+                      {chore.completed ? <CheckSquare size={28} /> : <Swords size={28} className={!chore.completed ? "animate-pulse" : ""} />}
+                    </button>
+                    
+                    <div className="w-full space-y-1.5">
+                      <div className="flex justify-center gap-2">
+                        <span className="font-bold font-serif text-xs text-gold-dim bg-parchment-800/10 px-2 py-0.5 rounded border border-parchment-800/20" title="Experience Reward">
+                          +{chore.xp} XP
+                        </span>
+                        <span className="font-bold font-serif text-xs text-red-700 bg-red-100/50 px-2 py-0.5 rounded border border-red-200 flex items-center gap-1" title="Boss Damage">
+                          <HeartCrack size={10} /> -{chore.damage}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-center gap-2 text-[10px] font-bold uppercase tracking-wide text-parchment-800/80">
+                         <span className="flex items-center gap-0.5 bg-parchment-300 px-1.5 py-0.5 rounded-full">
+                           <Clock size={10} /> {chore.estimatedTime}m
+                         </span>
+                         <span className={`
+                           px-1.5 py-0.5 rounded-full border
+                           ${chore.difficulty === 'Hard' ? 'text-red-800 bg-red-100 border-red-200' : 
+                             chore.difficulty === 'Medium' ? 'text-yellow-800 bg-yellow-100 border-yellow-200' : 
+                             'text-green-800 bg-green-100 border-green-200'}
+                         `}>{chore.difficulty}</span>
                        </div>
-                     </div>
-                   ))}
-                 </div>
-               </div>
-             </div>
-             
-          </ParchmentCard>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </ParchmentCard>
         ) : (
           <div className="h-full flex items-center justify-center opacity-50">
             <p className="font-serif text-xl">Select a boss to view details...</p>
