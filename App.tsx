@@ -9,12 +9,13 @@ import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
 import BossPage from './pages/BossPage';
+import HistoryPage from './pages/HistoryPage';
 import Layout from './components/Layout';
 import { User, Friend, Boss } from './types';
 import { getXPForLevel } from './services/xpService';
 import GoogleHeroSetup from './pages/GoogleHeroSetup';
 
-type Page = 'dashboard' | 'bosses';
+type Page = 'dashboard' | 'bosses' | 'history';
 type AuthView = 'login' | 'signup';
 
 const App: React.FC = () => {
@@ -180,10 +181,13 @@ const App: React.FC = () => {
       onLogout={handleLogout}
     >
       {currentPage === 'dashboard' && (
-        <Dashboard user={appUser} friends={friends} />
+        <Dashboard user={appUser} friends={friends} refreshFriends={() => {}} />
       )}
       {currentPage === 'bosses' && (
         <BossPage bosses={bosses} user={appUser} />
+      )}
+      {currentPage === 'history' && (
+        <HistoryPage user={appUser} />
       )}
     </Layout>
   );

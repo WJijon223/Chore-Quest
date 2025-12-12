@@ -61,3 +61,11 @@ export interface DailyActivity {
     date: Timestamp;
     xp: number;
 }
+
+export interface GeminiAPICall {
+  id: string;
+  prompt: string;
+  response: string;
+  timestamp: Timestamp;
+  metadata?: Record<string, any>;
+}
