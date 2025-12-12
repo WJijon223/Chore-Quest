@@ -138,6 +138,7 @@ const App: React.FC = () => {
 
   const handleSignUp = async (user: FirebaseUser, username?: string) => {
     const userDocRef = doc(db, 'users', user.uid);
+    const isGoogleSignUp = !username;
     const newUserData: User = {
       id: user.uid,
       username: username || user.displayName || 'New Hero',
@@ -148,6 +149,7 @@ const App: React.FC = () => {
       xpToNextLevel: getXPForLevel(1),
       bossesDefeated: 0,
       friends: [],
+      needsUsernameSetup: isGoogleSignUp,
     };
     await setDoc(userDocRef, newUserData, { merge: true });
     setAppUser(newUserData);

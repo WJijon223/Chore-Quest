@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "ai-powered-chore-quest"
+  },
+  "targets": {
+    "ai-powered-chore-quest": {
+      "hosting": {
+        "chore-quest-git": [
+          "ai-powered-chore-quest"
+        ],
+        "chore-quest": [
+          "chore-quest"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
