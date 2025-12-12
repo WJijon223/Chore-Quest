@@ -34,7 +34,7 @@ const BossPage: React.FC<BossPageProps> = ({ bosses, user }) => {
     if (!prompt || !user) return;
     setIsGenerating(true);
     try {
-      const partialBoss = await generateBossFromDescription(prompt);
+      const partialBoss = await generateBossFromDescription(prompt, user.id);
       const newBoss: Omit<Boss, 'id'> = {
         name: partialBoss.name || "Unknown Beast",
         description: partialBoss.description || "A mysterious entity.",

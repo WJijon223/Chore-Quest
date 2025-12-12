@@ -255,7 +255,7 @@ export const getGeminiAPICalls = async (userId: string): Promise<GeminiAPICall[]
   return history;
 }
 
-export const addGeminiAPICall = async (userId: string, call: Omit<GeminiAPICall, 'id'>): Promise<string> => {
+export const addGeminiAPICall = async (userId: string, call: Omit<GeminiAPICall, 'id' | 'timestamp'>): Promise<string> => {
   const historyRef = collection(db, 'users', userId, 'geminiHistory');
   const docRef = await addDoc(historyRef, {
       ...call,
@@ -265,3 +265,4 @@ export const addGeminiAPICall = async (userId: string, call: Omit<GeminiAPICall,
 }
 
 export { app, auth, db };
+''

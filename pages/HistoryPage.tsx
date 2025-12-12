@@ -3,6 +3,7 @@ import { ParchmentCard, FantasyButton } from '../components/FantasyUI';
 import { GeminiAPICall, User } from '../types';
 import { getGeminiAPICalls } from '../services/firebase';
 import { Clipboard, Edit } from 'lucide-react';
+import BossOverview from '../components/BossOverview'; // Import the new component
 
 interface HistoryPageProps {
   user: User;
@@ -54,8 +55,8 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ user }) => {
               <div>
                 <h3 className="font-bold font-serif text-lg text-parchment-900">Prompt:</h3>
                 <p className="text-parchment-800 mb-4">{item.prompt}</p>
-                <h3 className="font-bold font-serif text-lg text-parchment-900">Response:</h3>
-                <p className="text-parchment-800">{item.response}</p>
+                <h3 className="font-bold font-serif text-lg text-parchment-900">Generated Boss:</h3>
+                <BossOverview response={item.response} />
                 <div className="flex justify-end gap-2 mt-4">
                   <FantasyButton size="sm" onClick={() => handleReuse(item.prompt)}>
                     <Clipboard size={16} />
